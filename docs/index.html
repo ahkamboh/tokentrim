@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>tokentrim — cheaper Claude Code, automatically</title>
+  <meta name="description" content="Drop-in cost-optimized Claude Code subagents. Route grunt work (search, reading, tests, trivial edits) to cheap Haiku and keep Opus for the hard 10%. MIT, zero runtime — just markdown agents you drop into .claude/agents/." />
+  <meta property="og:title" content="tokentrim" />
+  <meta property="og:description" content="Stop paying Opus prices for grunt work. Drop-in cost-optimized Claude Code subagents." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --bg:#0c0f0e; --panel:#13181500; --card:#141a17; --ink:#eafff0; --muted:#9fb09a;
+      --accent:#a3e635; --accent2:#d9f99d; --warn:#f0795a; --line:rgba(255,255,255,.09);
+      --mono:"JetBrains Mono",ui-monospace,monospace;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{background:var(--bg);color:var(--ink);font-family:"Inter",system-ui,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;
+      background-image:radial-gradient(58% 48% at 50% -8%, rgba(163,230,53,.16), transparent 70%);}
+    a{color:inherit;text-decoration:none}
+    .wrap{max-width:940px;margin:0 auto;padding:0 22px}
+    .mono{font-family:var(--mono)}
+    nav{display:flex;align-items:center;justify-content:space-between;padding:24px 0}
+    .brand{display:inline-flex;align-items:center;gap:10px;font-family:"Space Grotesk";font-weight:700;font-size:20px;letter-spacing:-.02em}
+    .brand .dot{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;box-shadow:0 4px 16px -4px var(--accent)}
+    .brand .dot svg{width:15px;height:15px;display:block}
+    .nav-link{color:var(--muted);font-size:14.5px;border:1px solid var(--line);padding:8px 15px;border-radius:999px;transition:.2s}
+    .nav-link:hover{color:var(--ink);border-color:rgba(163,230,53,.5)}
+    .hero{text-align:center;padding:58px 0 26px}
+    .pill{display:inline-block;font-size:13px;color:var(--accent2);background:rgba(163,230,53,.1);border:1px solid rgba(163,230,53,.28);padding:6px 14px;border-radius:999px;margin-bottom:24px}
+    h1{font-family:"Space Grotesk";font-weight:700;font-size:clamp(38px,7vw,70px);line-height:1.02;letter-spacing:-.035em}
+    h1 .g{background:linear-gradient(100deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+    .sub{color:var(--muted);font-size:clamp(16px,2.1vw,19px);max-width:580px;margin:22px auto 0}
+    .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:30px}
+    .btn{padding:13px 24px;border-radius:11px;font-weight:600;font-size:15px;transition:transform .15s,box-shadow .2s,border-color .2s;display:inline-flex;align-items:center;gap:8px}
+    .btn.primary{background:var(--accent);color:#0c1505;box-shadow:0 1px 0 #6f9e1f,0 14px 34px -14px var(--accent)}
+    .btn.primary:hover{transform:translateY(-2px)}
+    .btn.ghost{border:1px solid var(--line);color:var(--ink)}
+    .btn.ghost:hover{border-color:rgba(163,230,53,.5);transform:translateY(-2px)}
+    /* signature before/after panel */
+    .compare{margin:50px auto 0;max-width:780px}
+    .compare-q{text-align:center;color:var(--muted);font-size:14.5px;margin-bottom:16px}
+    .compare-q b{color:var(--ink);font-weight:600}
+    .cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .cmp{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px}
+    .cmp h3{font-size:13px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+    .cmp.bad h3 .d{color:var(--warn)} .cmp.good h3 .d{color:var(--accent)}
+    .bar{height:34px;border-radius:8px;display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:13px;margin-bottom:9px;white-space:nowrap;overflow:hidden}
+    .bar.opus-bad{background:linear-gradient(90deg,rgba(240,121,90,.9),rgba(240,121,90,.5));color:#1a0c06;width:100%}
+    .bar.opus-good{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#0c1505;width:18%}
+    .bar.haiku{background:rgba(163,230,53,.14);border:1px solid rgba(163,230,53,.3);color:var(--accent2);width:82%}
+    .cmp .tot{font-size:13px;color:var(--muted);margin-top:6px}
+    .cmp .tot b{color:var(--ink)}
+    .legend{display:flex;gap:18px;justify-content:center;margin-top:14px;color:var(--muted);font-size:12.5px;flex-wrap:wrap}
+    .legend i{font-style:normal} .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
+    .note{text-align:center;color:var(--muted);font-size:12px;margin-top:12px;opacity:.8}
+    /* features */
+    .sec-h{font-family:"Space Grotesk";font-weight:600;font-size:clamp(24px,3.4vw,32px);letter-spacing:-.02em;margin:10px 0 6px;text-align:center}
+    .sec-p{text-align:center;color:var(--muted);font-size:15px;margin-bottom:22px}
+    .feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:14px 0 0}
+    .feat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+    .feat .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .feat h3{font-size:15.5px;font-weight:600;font-family:var(--mono)}
+    .badge{font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:999px;font-weight:500}
+    .badge.h{color:#0c1505;background:var(--accent)} .badge.s{color:#04222b;background:#5eead4} .badge.o{color:#fff;background:#ea7a3c} .badge.f{color:#fff;background:#c026d3}
+    .ladder{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:0 0 20px;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+    .ladder b{color:var(--ink);font-weight:500}
+    .feat p{color:var(--muted);font-size:14px}
+    .feat .fires{color:var(--accent2);font-size:12.5px;margin-top:9px;font-family:var(--mono)}
+    /* setup terminal */
+    #start{margin-top:64px}
+    .term{background:#0a0d0b;border:1px solid var(--line);border-radius:14px;overflow:hidden;max-width:720px;margin:0 auto}
+    .term-bar{display:flex;align-items:center;gap:7px;padding:12px 16px;border-bottom:1px solid var(--line)}
+    .term-bar .d{width:11px;height:11px;border-radius:50%}
+    .term pre{margin:0;padding:18px 20px;font-family:var(--mono);font-size:13px;line-height:1.85;color:#d6e6cf;white-space:pre-wrap}
+    .term .c{color:var(--muted)} .term .p{color:var(--accent)}
+    .copybtn{margin-left:auto;font-family:var(--mono);font-size:12px;color:#0c1505;background:var(--accent);border:none;border-radius:8px;padding:5px 13px;cursor:pointer;font-weight:600;transition:.2s}
+    .copybtn:hover{filter:brightness(1.08)}
+    .honesty{max-width:720px;margin:30px auto 0;border:1px solid var(--line);border-radius:12px;padding:16px 20px;color:var(--muted);font-size:13.5px;background:rgba(255,255,255,.02)}
+    .honesty b{color:var(--ink)}
+    footer{border-top:1px solid var(--line);margin-top:64px;padding:26px 0 50px;text-align:center;color:var(--muted);font-size:13.5px}
+    footer a{color:var(--accent2)}
+    @media(max-width:560px){.cmp-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="./">
+        <span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="#0c1505" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg></span>
+        tokentrim
+      </a>
+      <a class="nav-link" href="https://github.com/ahkamboh/tokentrim">GitHub ↗</a>
+    </nav>
+
+    <header class="hero">
+      <span class="pill">free · open-source · MIT · zero runtime</span>
+      <h1>Stop paying Opus prices<br/><span class="g">for grunt work.</span></h1>
+      <p class="sub">tokentrim drops a few cost-optimized subagents into Claude Code. Search, reading, tests and trivial edits get routed to cheap <b>Haiku</b> — your expensive model only does the hard 10%. No <code>/model</code> dance, no new tool to learn.</p>
+      <div class="cta">
+        <a class="btn primary" href="#start">⚡ Set it up</a>
+        <a class="btn ghost" href="https://github.com/ahkamboh/tokentrim">★ GitHub</a>
+      </div>
+
+      <section class="compare">
+        <p class="compare-q"><b>"Find every call site of <span class="mono">useAuth</span> and read the 3 biggest."</b></p>
+        <div class="cmp-grid">
+          <div class="cmp bad">
+            <h3><span class="d">●</span> without tokentrim</h3>
+            <div class="bar opus-bad">~38k tokens · Opus</div>
+            <p class="tot">grep + 3 full files land in your <b>main</b> context — all at frontier price.</p>
+          </div>
+          <div class="cmp good">
+            <h3><span class="d">●</span> with tokentrim</h3>
+            <div class="bar opus-good">~3k · Opus</div>
+            <div class="bar haiku">the rest · Haiku</div>
+            <p class="tot"><b>trim-scout</b> finds it, <b>trim-reader</b> digests — cheap, and your main context stays lean.</p>
+          </div>
+        </div>
+        <div class="legend">
+          <i><span class="sw" style="background:#f0795a"></span>expensive main model</i>
+          <i><span class="sw" style="background:#a3e635"></span>cheap Haiku offload</i>
+        </div>
+        <p class="note">Illustrative of the mechanism, not a benchmark — real savings depend on your codebase and how Claude routes.</p>
+      </section>
+    </header>
+
+    <section>
+      <h2 class="sec-h">Eight agents. Four tiers.</h2>
+      <p class="sec-p">Each is pinned to the cheapest model that can do its job. Claude routes automatically — cheap by default, climbing only when the task earns it.</p>
+      <div class="ladder"><span>🔴 <b>fable</b></span><span>→</span><span>🟠 <b>opus</b></span><span>→</span><span>🟡 <b>sonnet</b></span><span>→</span><span>🟢 <b>haiku</b></span><span style="opacity:.7">· priciest → cheapest</span></div>
+      <div class="feats">
+        <div class="feat"><div class="top"><h3>trim-scout</h3><span class="badge h">haiku</span></div><p>Find files, symbols, usages — returns paths only, never whole files.</p><div class="fires">"where is…" · "find all…"</div></div>
+        <div class="feat"><div class="top"><h3>trim-reader</h3><span class="badge h">haiku</span></div><p>Reads big or many files in its own context and hands back a tight digest.</p><div class="fires">logs · lockfiles · "summarize this"</div></div>
+        <div class="feat"><div class="top"><h3>trim-runner</h3><span class="badge h">haiku</span></div><p>Runs tests/build/lint and reports only pass/fail + the failing lines.</p><div class="fires">"run the tests" · "does it build"</div></div>
+        <div class="feat"><div class="top"><h3>trim-edit</h3><span class="badge h">haiku</span></div><p>Trivial mechanical edits — rename, typo, import path, version bump.</p><div class="fires">rename · find-and-replace</div></div>
+        <div class="feat"><div class="top"><h3>trim-deps</h3><span class="badge h">haiku</span></div><p>Looks up a version, an API signature, or digests a docs page.</p><div class="fires">"what version" · "what's the signature"</div></div>
+        <div class="feat"><div class="top"><h3>trim-coder</h3><span class="badge s">sonnet</span></div><p>The workhorse — everyday features, tests, moderate refactors, diff reviews.</p><div class="fires">implement · review · refactor</div></div>
+        <div class="feat"><div class="top"><h3>trim-architect</h3><span class="badge o">opus</span></div><p>The hard 10% — architecture and subtle, cross-cutting bugs. Returns a plan.</p><div class="fires">design · deep debugging</div></div>
+        <div class="feat"><div class="top"><h3>trim-marathon</h3><span class="badge f">fable</span></div><p>The heavy hauler — huge long-horizon jobs that must stay coherent. Use sparingly.</p><div class="fires">migrations · sweeping refactors</div></div>
+      </div>
+    </section>
+
+    <section id="start">
+      <h2 class="sec-h">Set it up once — then just code</h2>
+      <p class="sec-p">Paste this into <b style="color:var(--ink)">Claude Code · Cursor · Codex</b> — or any AI agent — and it installs tokentrim for you.</p>
+      <div class="term">
+        <div class="term-bar">
+          <span class="d" style="background:#ff5f57"></span><span class="d" style="background:#febc2e"></span><span class="d" style="background:#28c840"></span>
+          <span style="margin-left:8px;font-family:var(--mono);font-size:12px;color:var(--muted)">setup prompt — paste &amp; go</span>
+          <button id="copyPrompt" type="button" class="copybtn">copy prompt</button>
+        </div>
+<pre id="promptText"><span class="c"># paste me into your AI agent ↓</span>
+Set up tokentrim for me — a pack of cost-optimized Claude Code subagents that route
+grunt work (search, reading, tests, trivial edits) to cheap Haiku so my expensive
+model only does the hard parts (github.com/ahkamboh/tokentrim). Do this:
+
+1. <span class="p">git clone https://github.com/ahkamboh/tokentrim ~/tokentrim</span>
+2. Ask me: install to THIS project or globally? then run
+   <span class="p">bash ~/tokentrim/install.sh --project</span>   (from my project root)   OR
+   <span class="p">bash ~/tokentrim/install.sh --global</span>
+3. Confirm .claude/agents/trim-*.md lists 8 agents.</pre>
+      </div>
+      <p class="sec-p" style="margin-top:16px">Or do it yourself: <span class="mono" style="color:var(--accent2)">git clone … && bash tokentrim/install.sh --project</span></p>
+
+      <div class="honesty">
+        <b>Roughly how much:</b> ballpark <b>~30–60% lower spend</b> on an Opus-main session (illustrative, not a benchmark) — less on Sonnet, ~0 if your main is already Haiku. Speed gains are <b>modest and situational</b>; the reliable win is cost, not raw speed.<br/><br/>
+        <b>Honest about it:</b> delegation is Claude's choice from each agent's description — raised odds, not forced. Nothing changes your main-loop model; the win is offloaded sub-tasks + a leaner context. The opus/fable tiers cost more when used — only on the rare hard or huge job.
+      </div>
+    </section>
+
+    <footer>
+      MIT © <a href="https://github.com/ahkamboh">ahkamboh</a> · built with <a href="https://claude.com/claude-code">Claude Code</a> · <a href="https://github.com/ahkamboh/tokentrim">github.com/ahkamboh/tokentrim</a>
+    </footer>
+  </div>
+
+  <script>
+    const PROMPT = [
+      "Set up tokentrim for me — a pack of cost-optimized Claude Code subagents that route",
+      "grunt work (search, reading, tests, trivial edits) to cheap Haiku so my expensive",
+      "model only does the hard parts (github.com/ahkamboh/tokentrim). Do this:",
+      "",
+      "1. git clone https://github.com/ahkamboh/tokentrim ~/tokentrim",
+      "2. Ask me: install to THIS project or globally? then run",
+      "   bash ~/tokentrim/install.sh --project   (from my project root)   OR",
+      "   bash ~/tokentrim/install.sh --global",
+      "3. Confirm .claude/agents/trim-*.md lists 8 agents."
+    ].join("\n");
+    function copyText(t){
+      if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t);
+      return new Promise((res, rej) => {
+        try { const ta = document.createElement("textarea"); ta.value = t; ta.setAttribute("readonly",""); ta.style.position="fixed"; ta.style.top="-1000px"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); res(); }
+        catch (e) { rej(e); }
+      });
+    }
+    const b = document.getElementById("copyPrompt");
+    b.addEventListener("click", () => {
+      copyText(PROMPT).then(() => { b.textContent = "copied ✓"; setTimeout(() => (b.textContent = "copy prompt"), 1600); })
+        .catch(() => { b.textContent = "press ⌘/Ctrl+C"; setTimeout(() => (b.textContent = "copy prompt"), 2000); });
+    });
+  </script>
+</body>
+</html>
