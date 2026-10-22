@@ -7,7 +7,7 @@ following the same frontmatter (`name`, `description`, `tools`, `model`) and a t
 
 ## Commits
 
-Author commits as [ahkamboh](https://github.com/ahkamboh) (`hi@alihamzakamboh.com`).
+Author commits as [ahkamboh](https://github.com/ahkamboh) (`123060177+ahkamboh@users.noreply.github.com`).
 Keep messages conventional (`feat:`, `fix:`, `docs:` …). If an AI agent helped, a
 `Co-authored-by:` trailer for that tool is welcome but not required.
 
